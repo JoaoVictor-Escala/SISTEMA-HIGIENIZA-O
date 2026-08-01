@@ -1,0 +1,32 @@
+{
+  "clients": [],
+  "orders": [],
+  "inventory": [],
+  "transactions": [
+    {
+      "id": "1777074737460",
+      "type": "despesa",
+      "description": "gasolina",
+      "amount": "30",
+      "category": "Combustível",
+      "date": "2026-04-24",
+      "created_at": "2026-04-24T23:52:17.460Z"
+    },
+    {
+      "id": "1777074759284",
+      "type": "despesa",
+      "description": "vonix",
+      "amount": "22",
+      "category": "Equipamentos",
+      "date": "2026-04-24",
+      "created_at": "2026-04-24T23:52:39.284Z"
+    }
+  ],
+  "quotes": [],
+  "config": {
+    "companyName": "Impacto Clean",
+    "ownerName": "João victor",
+    "whatsapp": "32999744052",
+    "monthlyGoal": 8000
+  }
+}
