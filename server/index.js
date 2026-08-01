@@ -536,7 +536,6 @@ app.delete('/api/quotes/:id', requireAuth, checkTrial, (req, res) => { deleteQuo
 // GET /api/portal/:id — returns quote + company info + linked OS
 app.get('/api/portal/:id', (req, res) => {
     let quote = getQuoteById(null, req.params.id);
-    const cfg = getConfig(quote ? quote.tenant_id : null);
     
     if (!quote) {
         // Fallback: If not a quote ID, maybe it's an Order ID directly?
@@ -561,6 +560,8 @@ app.get('/api/portal/:id', (req, res) => {
         }
         return res.status(404).json({ error: 'Proposta não encontrada' });
     }
+
+    const cfg = getConfig(quote.tenant_id);
 
     // Find OS linked to this quote
     const allOrders = getOrders(quote.tenant_id);
