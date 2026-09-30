@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getClients, addClient, updateClient, deleteClient, getClientOrders } from '../api';
-import { UserPlus, Trash2, Phone, MapPin, Calendar, Search, X, Pencil, History, Star, CheckCircle } from 'lucide-react';
+import { getClients, addClient, updateClient, deleteClient, getClientOrders, exportClientsCSV } from '../api';
+import { UserPlus, Trash2, Phone, MapPin, Calendar, Search, X, Pencil, History, Star, CheckCircle, Download } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
 
