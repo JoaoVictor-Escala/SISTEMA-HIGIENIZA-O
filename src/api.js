@@ -104,6 +104,38 @@ export const addOrder = (b) => post('/orders', b);
 export const updateOrderStatus = (id, status) => put(`/orders/${id}/status`, { status });
 export const updateOrder = (id, b) => put(`/orders/${id}`, b);
 export const deleteOrder = (id) => del(`/orders/${id}`);
+export const exportOrdersCSV = () => {
+    const token = localStorage.getItem('token');
+    const link = document.createElement('a');
+    link.href = `/api/orders/export-csv`;
+    link.setAttribute('download', 'ordens_servico.csv');
+    // Use fetch to include auth header
+    fetch('/api/orders/export-csv', { headers: { 'Authorization': `Bearer ${token}` } })
+        .then(r => r.blob())
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        });
+};
+export const exportClientsCSV = () => {
+    const token = localStorage.getItem('token');
+    fetch('/api/clients/export-csv', { headers: { 'Authorization': `Bearer ${token}` } })
+        .then(r => r.blob())
+        .then(blob => {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'clientes.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        });
+};
 
 // INVENTORY
 export const getInventory = () => get('/inventory');

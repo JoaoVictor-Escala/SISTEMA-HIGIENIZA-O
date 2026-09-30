@@ -215,6 +215,11 @@ const migrations = [
   // Multi-collaborator migrations
   'ALTER TABLE orders ADD COLUMN assigned_to TEXT',
   'CREATE TABLE IF NOT EXISTS collaborators (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, name TEXT NOT NULL, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT \'tecnico\', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE)',
+  // Novas melhorias — observações, pagamento e unidade de estoque
+  'ALTER TABLE orders ADD COLUMN notes TEXT DEFAULT \'\'',
+  'ALTER TABLE orders ADD COLUMN payment_method TEXT DEFAULT \'\'',
+  'ALTER TABLE orders ADD COLUMN payment_status TEXT DEFAULT \'pendente\'',
+  'ALTER TABLE inventory ADD COLUMN unit TEXT DEFAULT \'unidade\'',
 ];
 migrations.forEach(sql => { try { db.prepare(sql).run(); } catch { /* ignore */ } });
 

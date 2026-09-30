@@ -137,6 +137,7 @@ export default function PortalCliente() {
   const [error, setError] = useState(false);
   const [approving, setApproving] = useState(false);
   const [approved, setApproved] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -371,22 +372,33 @@ export default function PortalCliente() {
         <div className="portal-card" style={{ padding: '24px 0 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {/* Approve button */}
           {isPending && !approved && (
-            <button onClick={handleApprove} disabled={approving} style={{
-              width: '100%', padding: '18px 24px', background: 'linear-gradient(135deg, #16a34a, #15803d)',
-              color: 'white', border: 'none', borderRadius: 14, fontSize: 17, fontWeight: 800,
-              cursor: approving ? 'not-allowed' : 'pointer', opacity: approving ? 0.7 : 1,
-              boxShadow: '0 4px 20px rgba(22,163,74,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              transition: 'all 0.2s', fontFamily: 'inherit',
-            }}>
-              {approving ? (
-                <>
-                  <div style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                  Aprovando...
-                </>
-              ) : (
-                <><CheckCircle size={20} /> Aprovar Proposta</>
-              )}
-            </button>
+            <>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px', background: '#f8fafc', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, color: '#475569', userSelect: 'none', border: '1px solid #e2e8f0' }}>
+                <input 
+                  type="checkbox" 
+                  checked={termsAccepted} 
+                  onChange={e => setTermsAccepted(e.target.checked)}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+                Li e aceito os termos do serviço, incluindo condições e prazos.
+              </label>
+              <button onClick={handleApprove} disabled={approving || !termsAccepted} style={{
+                width: '100%', padding: '18px 24px', background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                color: 'white', border: 'none', borderRadius: 14, fontSize: 17, fontWeight: 800,
+                cursor: (approving || !termsAccepted) ? 'not-allowed' : 'pointer', opacity: (approving || !termsAccepted) ? 0.7 : 1,
+                boxShadow: (approving || !termsAccepted) ? 'none' : '0 4px 20px rgba(22,163,74,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                transition: 'all 0.2s', fontFamily: 'inherit',
+              }}>
+                {approving ? (
+                  <>
+                    <div style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    Aprovando...
+                  </>
+                ) : (
+                  <><CheckCircle size={20} /> Aprovar Proposta</>
+                )}
+              </button>
+            </>
           )}
 
           {/* PDF Comprovante */}

@@ -12,6 +12,16 @@ const FMT_DATE = (str) => {
 };
 const FMT_BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
+const formatPhone = (val) => {
+  if (!val) return '';
+  let v = val.replace(/\D/g, '');
+  if (v.length > 11) v = v.slice(0, 11);
+  if (v.length > 10) return v.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+  if (v.length > 6) return v.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+  if (v.length > 2) return v.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+  return v.replace(/^(\d*)/, '($1');
+};
+
 const BLANK = { name: '', phone: '', address: '', last_service_date: '', tipo: 'cliente' };
 
 // Componente do formulário isolado
@@ -82,7 +92,7 @@ function ClientFormModal({ title, sub, form, setForm, saving, onSubmit, onClose 
                 className="field-input"
                 placeholder="(11) 99999-9999"
                 value={form.phone}
-                onChange={e => setForm({ ...form, phone: e.target.value })}
+                onChange={e => setForm({ ...form, phone: formatPhone(e.target.value) })}
                 required
               />
             </div>
@@ -298,6 +308,9 @@ export default function CRM() {
               <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)' }} />
               <input className="field-input search-input" style={{ paddingLeft: 32, width: 220 }} placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
+            <button className="btn btn-secondary" onClick={() => exportClientsCSV()} title="Exportar CSV" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Download size={14} /> <span className="hide-text-mobile">CSV</span>
+            </button>
             <button className="btn btn-primary" onClick={() => { setForm(BLANK); setShowAdd(true); }}>
               <UserPlus size={15} /> <span className="hide-text-mobile">Novo Contato</span>
             </button>

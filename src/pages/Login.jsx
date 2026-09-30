@@ -135,7 +135,7 @@ export default function Login() {
               <h2 className="text-2xl font-extrabold text-white tracking-tight">
                 {isForgot ? 'Recuperar Senha' : (isRegister ? 'Criar sua conta' : 'Acessar sua conta')}
               </h2>
-              <p className="text-sm text-slate-400 mt-1">Sistema de Gestão para Higienização</p>
+              <p className="text-sm text-slate-400 mt-1">Sistema de Gestão de Cuidadores</p>
             </div>
           </CardHeader>
 

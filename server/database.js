@@ -152,7 +152,7 @@ export const addOrder = (tenant_id, order) => {
     if (c) client_name = c.name;
   }
   db.prepare(
-    'INSERT INTO orders (id, tenant_id, client_id, client_name, service, description, date, scheduled_for, status, price, down_payment, quote_id, assigned_to) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO orders (id, tenant_id, client_id, client_name, service, description, date, scheduled_for, status, price, down_payment, quote_id, assigned_to, notes, payment_method, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(
     id, tenant_id,
     order.client_id, client_name,
@@ -164,7 +164,10 @@ export const addOrder = (tenant_id, order) => {
     Number(order.price) || 0,
     Number(order.down_payment) || 0,
     order.quote_id || null,
-    order.assigned_to || null
+    order.assigned_to || null,
+    order.notes || '',
+    order.payment_method || '',
+    order.payment_status || 'pendente'
   );
 
   if (order.status === 'Finalizado') {
@@ -201,22 +204,25 @@ export const updateOrderStatus = (tenant_id, id, status) => {
 export const updateOrder = (tenant_id, id, fields) => {
   const current = db.prepare('SELECT * FROM orders WHERE id = ? AND tenant_id = ?').get(id, tenant_id);
   if (!current) return null;
-  const service       = fields.description !== undefined ? fields.description : (fields.service !== undefined ? fields.service : current.service);
-  const description   = fields.description !== undefined ? fields.description : current.description;
-  const scheduled_for = fields.scheduled_for !== undefined ? fields.scheduled_for : current.scheduled_for;
-  const price         = fields.price !== undefined ? Number(fields.price) : current.price;
-  const down_payment  = fields.down_payment !== undefined ? Number(fields.down_payment) : current.down_payment;
-  const status        = fields.status !== undefined ? fields.status : current.status;
-  const client_id     = fields.client_id !== undefined ? fields.client_id : current.client_id;
-  const assigned_to   = fields.assigned_to !== undefined ? fields.assigned_to : current.assigned_to;
+  const service         = fields.description !== undefined ? fields.description : (fields.service !== undefined ? fields.service : current.service);
+  const description     = fields.description !== undefined ? fields.description : current.description;
+  const scheduled_for   = fields.scheduled_for !== undefined ? fields.scheduled_for : current.scheduled_for;
+  const price           = fields.price !== undefined ? Number(fields.price) : current.price;
+  const down_payment    = fields.down_payment !== undefined ? Number(fields.down_payment) : current.down_payment;
+  const status          = fields.status !== undefined ? fields.status : current.status;
+  const client_id       = fields.client_id !== undefined ? fields.client_id : current.client_id;
+  const assigned_to     = fields.assigned_to !== undefined ? fields.assigned_to : current.assigned_to;
+  const notes           = fields.notes !== undefined ? fields.notes : (current.notes || '');
+  const payment_method  = fields.payment_method !== undefined ? fields.payment_method : (current.payment_method || '');
+  const payment_status  = fields.payment_status !== undefined ? fields.payment_status : (current.payment_status || 'pendente');
   // Resolve client name from DB if client_id changed
   let client_name = current.client_name;
   if (fields.client_id && fields.client_id !== current.client_id) {
     const c = db.prepare('SELECT name FROM clients WHERE id = ? AND tenant_id = ?').get(fields.client_id, tenant_id);
     if (c) client_name = c.name;
   }
-  db.prepare('UPDATE orders SET service=?, description=?, scheduled_for=?, price=?, down_payment=?, status=?, client_id=?, client_name=?, assigned_to=? WHERE id=? AND tenant_id=?')
-    .run(service, description, scheduled_for, price, down_payment, status, client_id, client_name, assigned_to, id, tenant_id);
+  db.prepare('UPDATE orders SET service=?, description=?, scheduled_for=?, price=?, down_payment=?, status=?, client_id=?, client_name=?, assigned_to=?, notes=?, payment_method=?, payment_status=? WHERE id=? AND tenant_id=?')
+    .run(service, description, scheduled_for, price, down_payment, status, client_id, client_name, assigned_to, notes, payment_method, payment_status, id, tenant_id);
 
   if (status === 'Finalizado') {
     handleOrderCompletion(tenant_id, client_id, scheduled_for);
@@ -246,8 +252,10 @@ export const updateInventoryItem = (tenant_id, id, fields) => {
   const name = fields.name !== undefined ? fields.name : current.name;
   const quantity = fields.quantity !== undefined ? Number(fields.quantity) : current.quantity;
   const min_quantity = fields.min_quantity !== undefined ? Number(fields.min_quantity) : current.min_quantity;
-  db.prepare('UPDATE inventory SET name=?, quantity=?, min_quantity=? WHERE id=? AND tenant_id=?')
-    .run(name, quantity, min_quantity, id, tenant_id);
+  const cost = fields.cost !== undefined ? Number(fields.cost) : (current.cost || 0);
+  const unit = fields.unit !== undefined ? fields.unit : (current.unit || 'unidade');
+  db.prepare('UPDATE inventory SET name=?, quantity=?, min_quantity=?, cost=?, unit=? WHERE id=? AND tenant_id=?')
+    .run(name, quantity, min_quantity, cost, unit, id, tenant_id);
   return db.prepare('SELECT * FROM inventory WHERE id = ? AND tenant_id = ?').get(id, tenant_id);
 };
 export const deleteInventoryItem = (tenant_id, id) => {

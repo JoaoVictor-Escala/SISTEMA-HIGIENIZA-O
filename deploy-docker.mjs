@@ -11,7 +11,7 @@ const VPS = {
   host: '72.62.138.34',
   port: 22,
   username: 'root',
-  password: 'Black2024@@@',
+  privateKey: fs.readFileSync(path.join(process.env.USERPROFILE, '.ssh', 'id_ed25519_higigestor')),
   readyTimeout: 20000,
 };
 

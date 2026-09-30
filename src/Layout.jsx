@@ -338,7 +338,7 @@ export default function Layout() {
         </div>
         <div>
           <div className="brand-name">{config.companyName}</div>
-          <div className="brand-sub">Higienização</div>
+          <div className="brand-sub">Cuidadores</div>
         </div>
       </div>
 

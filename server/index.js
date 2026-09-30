@@ -32,6 +32,7 @@ import {
     markTrialWarningSent, getTenantsNearTrialExpiry,
     getCollaborators, addCollaborator, updateCollaborator, deleteCollaborator
 } from './database.js';
+import db from './db.js';
 import { startFollowupCron, processFollowupNow, buildFollowupMessage } from './followup.js';
 import * as evolution from './evolution.js';
 import { analyzeCleaningTask } from './ai.js';
@@ -382,6 +383,50 @@ app.get('/api/orders', requireAuth, checkTrial, (req, res) => {
     const { page, limit, search, status } = req.query;
     res.json(getOrders(req.tenantId, page, limit, search, status, req.collaboratorId, req.userRole));
 });
+
+// Exportar OS como CSV
+app.get('/api/orders/export-csv', requireAuth, checkTrial, (req, res) => {
+    if (req.userRole === 'tecnico') return res.status(403).json({ error: 'Acesso negado' });
+    const orders = getOrders(req.tenantId);
+    const header = 'ID,Cliente,Servico,Data,Valor,Sinal,Status,Tecnico,Metodo Pagamento,Status Pagamento,Observacoes';
+    const rows = orders.map(o => [
+        o.id,
+        `"${(o.client_name || '').replace(/"/g, '""')}"`,
+        `"${(o.service || o.description || '').replace(/"/g, '""')}"`,
+        o.scheduled_for ? new Date(o.scheduled_for).toLocaleDateString('pt-BR') : '',
+        (Number(o.price) || 0).toFixed(2),
+        (Number(o.down_payment) || 0).toFixed(2),
+        o.status || '',
+        o.assigned_to || 'Proprietário',
+        o.payment_method || '',
+        o.payment_status || '',
+        `"${(o.notes || '').replace(/"/g, '""')}"`,
+    ].join(',')).join('\n');
+    const csv = header + '\n' + rows;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="ordens_servico.csv"');
+    res.send('\uFEFF' + csv); // BOM para Excel
+});
+
+// Exportar Clientes como CSV
+app.get('/api/clients/export-csv', requireAuth, checkTrial, (req, res) => {
+    if (req.userRole === 'tecnico') return res.status(403).json({ error: 'Acesso negado' });
+    const clients = getClients(req.tenantId);
+    const header = 'ID,Nome,Telefone,Endereco,Tipo,Ultimo Servico';
+    const rows = (Array.isArray(clients) ? clients : clients.data || []).map(c => [
+        c.id,
+        `"${(c.name || '').replace(/"/g, '""')}"`,
+        `"${(c.phone || '').replace(/"/g, '""')}"`,
+        `"${(c.address || '').replace(/"/g, '""')}"`,
+        c.tipo || 'cliente',
+        c.last_service_date || '',
+    ].join(',')).join('\n');
+    const csv = header + '\n' + rows;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="clientes.csv"');
+    res.send('\uFEFF' + csv);
+});
+
 app.post('/api/orders', requireAuth, checkTrial, writeLimiter, (req, res) => res.status(201).json(addOrder(req.tenantId, req.body)));
 app.put('/api/orders/:id/status', requireAuth, checkTrial, (req, res) => {
     const { status } = req.body;
@@ -538,8 +583,8 @@ app.get('/api/portal/:id', (req, res) => {
     let quote = getQuoteById(null, req.params.id);
     
     if (!quote) {
-        // Fallback: If not a quote ID, maybe it's an Order ID directly?
-        const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+        // Fallback: If not a quote ID, maybe it's an Order ID directly or the quote was deleted (finalizado)
+        const order = db.prepare('SELECT * FROM orders WHERE id = ? OR quote_id = ?').get(req.params.id, req.params.id);
         if (order) {
             const orderCfg = getConfig(order.tenant_id);
             // Mock a quote object so the portal displays the service correctly

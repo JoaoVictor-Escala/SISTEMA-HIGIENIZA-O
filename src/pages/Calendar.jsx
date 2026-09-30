@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { getOrders, addOrder, getClientsOptions, updateOrderStatus, updateOrder, deleteOrder, getConfig, getCollaborators } from '../api';
-import { Plus, Trash2, X, Search, Pencil, MapPin, List, Calendar as CalendarIcon, FileText } from 'lucide-react';
+import { exportOrdersCSV } from '../api';
+import { Plus, Trash2, X, Search, Pencil, MapPin, List, Calendar as CalendarIcon, FileText, Download } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
 import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar';
@@ -83,7 +84,9 @@ function statusBadge(s) {
   return { 'Finalizado': 'badge-success', 'Agendado': 'badge-info', 'Em Andamento': 'badge-warning', 'Aguardando': 'badge-neutral', 'Cancelado': 'badge-danger' }[s] ?? 'badge-neutral';
 }
 
-const BLANK = { client_id: '', description: '', price: '', scheduled_for: '', status: 'Agendado', down_payment: '', assigned_to: '' };
+const PAYMENT_METHODS = ['', 'PIX', 'Dinheiro', 'Cartão Débito', 'Cartão Crédito', 'Transferência', 'Boleto'];
+const PAYMENT_STATUS  = ['pendente', 'pago', 'parcial'];
+const BLANK = { client_id: '', description: '', price: '', scheduled_for: '', status: 'Agendado', down_payment: '', assigned_to: '', notes: '', payment_method: '', payment_status: 'pendente' };
 
 // Componente do formulário de OS
 function OSModal({ title, sub, form, setForm, clients, collaborators = [], isTecnico = false, saving, onSubmit, onClose, editOrder, onCopyLink }) {
@@ -167,6 +170,39 @@ function OSModal({ title, sub, form, setForm, clients, collaborators = [], isTec
                   <div style={{ fontSize: 24, fontWeight: 800, color: '#16a34a', marginTop: 4 }}>{FMT_BRL.format(remainder)}</div>
                 </div>
               </div>
+            </div>
+
+            {/* Método e Status de Pagamento */}
+            <div className="field">
+              <label className="field-label">💳 Forma de Pagamento</label>
+              <select className="field-input" value={form.payment_method || ''} onChange={e => setForm({ ...form, payment_method: e.target.value })}>
+                {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m || 'Não informado'}</option>)}
+              </select>
+            </div>
+
+            <div className="field">
+              <label className="field-label">✅ Status do Pagamento</label>
+              <select className="field-input" value={form.payment_status || 'pendente'} onChange={e => setForm({ ...form, payment_status: e.target.value })}>
+                {PAYMENT_STATUS.map(s => (
+                  <option key={s} value={s}>
+                    {s === 'pendente' ? '⏳ Pendente' : s === 'pago' ? '✅ Pago' : '🟡 Parcial'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Observações */}
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label className="field-label">📝 Observações Internas</label>
+              <textarea
+                className="field-input"
+                rows={3}
+                placeholder="Ex: Cliente pediu para ligar antes, escada no 2º andar, mancha difícil no lado esquerdo..."
+                value={form.notes || ''}
+                onChange={e => setForm({ ...form, notes: e.target.value })}
+                style={{ resize: 'vertical', minHeight: 70 }}
+              />
+              <span style={{ fontSize: 11, color: 'var(--gray-500)', marginTop: 4, display: 'block' }}>Visível apenas internamente</span>
             </div>
           </div>
 
@@ -290,6 +326,9 @@ export default function Agenda() {
       status:       o.status || 'Agendado',
       down_payment: o.down_payment ?? '',
       assigned_to:  o.assigned_to || '',
+      notes:        o.notes || '',
+      payment_method: o.payment_method || '',
+      payment_status: o.payment_status || 'pendente',
     });
     setEditOrder(o);
   };
@@ -300,13 +339,16 @@ export default function Agenda() {
     setSaving(true);
     try {
       await updateOrder(editOrder.id, {
-        description:   editForm.description,
-        price:         editForm.price,
-        scheduled_for: editForm.scheduled_for,
-        status:        editForm.status,
-        down_payment:  editForm.down_payment,
-        client_id:     editForm.client_id,
-        assigned_to:   editForm.assigned_to,
+        description:    editForm.description,
+        price:          editForm.price,
+        scheduled_for:  editForm.scheduled_for,
+        status:         editForm.status,
+        down_payment:   editForm.down_payment,
+        client_id:      editForm.client_id,
+        assigned_to:    editForm.assigned_to,
+        notes:          editForm.notes,
+        payment_method: editForm.payment_method,
+        payment_status: editForm.payment_status,
       });
       toast('OS atualizada com sucesso!', 'success');
       setEditOrder(null);
@@ -441,16 +483,21 @@ export default function Agenda() {
             </div>
           </div>
 
-          {/* Busca + Nova OS */}
+          {/* Busca + Nova OS + Export */}
           <div className="action-bar">
             <div className="search-input-wrapper" style={{ position: 'relative' }}>
               <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--gray-400)' }} />
               <input className="field-input search-input" style={{ paddingLeft: 32, width: 200 }} placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             {!isTecnico && (
-              <button className="btn btn-primary" onClick={() => { setForm(BLANK); setShowAdd(true); }}>
-                <Plus size={15} /> <span className="hide-text-mobile">Nova OS</span>
-              </button>
+              <>
+                <button className="btn btn-secondary" onClick={() => { exportOrdersCSV(); }} title="Exportar CSV" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Download size={14} /> <span className="hide-text-mobile">CSV</span>
+                </button>
+                <button className="btn btn-primary" onClick={() => { setForm(BLANK); setShowAdd(true); }}>
+                  <Plus size={15} /> <span className="hide-text-mobile">Nova OS</span>
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -527,11 +574,22 @@ export default function Agenda() {
                     <tr key={o.id}>
                       <td data-label="Serviço">
                         <span className="td-strong">{o.description || o.service}</span>
+                        {o.payment_status && o.payment_status !== 'pendente' && (
+                          <span className={`badge`} style={{
+                            marginLeft: 6, fontSize: 10.5,
+                            background: o.payment_status === 'pago' ? '#f0fdf4' : '#fffbeb',
+                            color: o.payment_status === 'pago' ? '#16a34a' : '#b45309',
+                          }}>
+                            {o.payment_status === 'pago' ? '✅ Pago' : '🟡 Parcial'}
+                          </span>
+                        )}
+                        {o.payment_method && <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 2 }}>{o.payment_method}</div>}
                         {Number(o.down_payment) > 0 && (
                           <div style={{ fontSize: 11, color: '#16a34a', marginTop: 2 }}>
                             Sinal: {FMT_BRL.format(Number(o.down_payment))} · Falta: {FMT_BRL.format(remainder)}
                           </div>
                         )}
+                        {o.notes && <div style={{ fontSize: 11, color: 'var(--gray-500)', marginTop: 2, fontStyle: 'italic' }}>📝 {o.notes.length > 50 ? o.notes.substring(0, 50) + '...' : o.notes}</div>}
                       </td>
                       <td data-label="Cliente">{getClientName(o.client_id)}</td>
                       <td data-label="Data / Hora" className="td-muted">{FMT_DT(o.scheduled_for)}</td>
